@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
 import 'package:flutter/material.dart';
+import 'package:merchant/const.dart';
 import 'package:merchant/models/user_model.dart';
 import 'package:merchant/screens/auth_screen.dart';
 import 'package:merchant/screens/profile_sections/bonus_history_screen.dart';
@@ -21,8 +25,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
   bool _offersEnabled = true;
 
+Future<void> _reloadUser() async {
+  final response = await http.get(Uri.parse('$baseUrl/get_merchant.php?id=${widget.user.id}'));
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    if (data['success'] == true && data['merchant'] != null) {
+      setState(() {
+        widget.onUserUpdate(User.fromJson(data['merchant']));
+      });
+    }
+  }
+}
+@override
+void initState() {
+  super.initState();
+  _reloadUser();
+}
+String _formatMemberSince(String dateString) {
+  print('memberSince reçu: $dateString');
+  if (dateString.isEmpty) return '';
+  final date = DateTime.tryParse(dateString);
+  if (date == null) return dateString;
+  const months = [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+  ];
+  return '${date.day} ${months[date.month - 1]} ${date.year}';
+}
   @override
   Widget build(BuildContext context) {
+                                                    String formatted = _formatMemberSince(widget.user.memberSince);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
@@ -66,6 +99,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Text(
+                          //   formatted.isEmpty ? 'Date inconnue' : 'Membre depuis $formatted',
+                          //   style: const TextStyle(
+                          //     fontSize: 12,
+                          //     fontFamily: "r",
+                          //     color: Colors.white70,
+                          //   ),
+                          // ),
                           Text(
                             '${widget.user.firstName} ${widget.user.lastName}',
                             style: const TextStyle(
@@ -89,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Membre depuis ${widget.user.memberSince}',
+                              'Membre depuis ${_formatMemberSince(widget.user.memberSince)}',
                                 style: const TextStyle(
                                   fontSize: 12,
                       fontFamily: "r",
@@ -136,41 +177,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               // Stats Cards
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        icon: Icons.star,
-                        value: widget.user.points.toString(),
-                        label: 'Points',
-                        color: const Color(0xFFF59E0B),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard(
-                        icon: Icons.trending_up,
-                        value: '1250.50€',
-                        label: 'Dépensé',
-                        color: const Color(0xFF10B981),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard(
-                        icon: Icons.card_giftcard,
-                        value: '8',
-                        label: 'Récompenses',
-                        color: const Color(0xFF8B5CF6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              //   child: Row(
+              //     children: [
+              //       Expanded(
+              //         child: _buildStatCard(
+              //           icon: Icons.star,
+              //           value: widget.user.points.toString(),
+              //           label: 'Points',
+              //           color: const Color(0xFFF59E0B),
+              //         ),
+              //       ),
+              //       const SizedBox(width: 12),
+              //       Expanded(
+              //         child: _buildStatCard(
+              //           icon: Icons.trending_up,
+              //           value: '1250.50€',
+              //           label: 'Dépensé',
+              //           color: const Color(0xFF10B981),
+              //         ),
+              //       ),
+              //       const SizedBox(width: 12),
+              //       Expanded(
+              //         child: _buildStatCard(
+              //           icon: Icons.card_giftcard,
+              //           value: '8',
+              //           label: 'Récompenses',
+              //           color: const Color(0xFF8B5CF6),
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
 
-              const SizedBox(height: 22),
+              // const SizedBox(height: 22),
 
               // Settings Section
               _buildSection(
@@ -214,26 +255,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Informations personnelles',
                     onTap: () => _navigateToEditProfile(),
                   ),
-                  _buildMenuItem(
-                    icon: Icons.settings,
-                    title: 'Préférences',
-                    onTap: () => _navigateToPreferences(),
+                  // _buildMenuItem(
+                  //   icon: Icons.settings,
+                  //   title: 'Préférences',
+                  //   onTap: () => _navigateToPreferences(),
+                  // ),
+                                    _buildMenuItem(
+                    icon: Icons.message,
+                    title: 'Message personnalisé client',
+                    onTap: _showCustomMessageDialog,
                   ),
                   _buildMenuItem(
                     icon: Icons.security,
                     title: 'Sécurité et confidentialité',
                     onTap: () => _navigateToSecurity(),
                   ),
-                  _buildMenuItem(
-                    icon: Icons.history,
-                    title: 'Historique d\'achats',
-                    onTap: () => _navigateToPurchaseHistory(),
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.star,
-                    title: 'Historique des bonus',
-                    onTap: () => _navigateToBonusHistory(),
-                  ),
+                 
                 ],
               ),
 
@@ -449,11 +486,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const SecurityScreen(),
+        builder: (context) =>  SecurityScreen(user: widget.user,),
       ),
     );
   }
+void _showCustomMessageDialog() async {
+  final controller = TextEditingController();
+  String? currentMsg;
 
+  // Récupère le message actuel
+  final resp = await http.get(Uri.parse('$baseUrl/get_custom_message.php?id=${widget.user.id}'));
+  if (resp.statusCode == 200) {
+    final data = jsonDecode(resp.body);
+    if (data['success'] == true) {
+      currentMsg = data['custom_message'] ?? '';
+      controller.text = currentMsg ?? '';
+    }
+  }
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('Message personnalisé',style: TextStyle(fontFamily: "b"),),
+      content: TextField(
+        style: TextStyle(fontFamily: "r"),
+        controller: controller,
+        maxLines: 4,
+        decoration: const InputDecoration(
+          hintText: "Ex: On ne peut scanner ton QR code que si ton achat dépasse 5000 FCFA",
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler',style: TextStyle(fontFamily: "b"),),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            final msg = controller.text.trim();
+            final res = await http.post(
+              Uri.parse('$baseUrl/update_custom_message.php'),
+              body: {
+                'id': widget.user.id.toString(),
+                'custom_message': msg,
+              },
+            );
+            Navigator.pop(context);
+            if (res.statusCode == 200 && jsonDecode(res.body)['success'] == true) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Message enregistré'), backgroundColor: Color(0xFF10B981)),
+              );
+              setState(() {}); // Pour rafraîchir l'affichage si besoin
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Erreur lors de la sauvegarde'), backgroundColor: Colors.red),
+              );
+            }
+          },
+          child: const Text('Enregistrer',style: TextStyle(fontFamily: "b"),),
+        ),
+      ],
+    ),
+  );
+}
   void _navigateToPurchaseHistory() {
     Navigator.push(
       context,

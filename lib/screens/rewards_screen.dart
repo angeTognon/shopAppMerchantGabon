@@ -28,7 +28,6 @@ class _RewardsScreenState extends State<RewardsScreen> with WidgetsBindingObserv
   bool _firstLoad = true;
   Timer? _refreshTimer;
 
-
   @override
   void initState() {
     super.initState();
@@ -166,289 +165,292 @@ class _RewardsScreenState extends State<RewardsScreen> with WidgetsBindingObserv
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child:
-             Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 20,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 20,
+              ),
+              child: Text(
+                "Clients récompensés",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontFamily: "b",
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                    child: Text(
-                      "Clients récompensés",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontFamily: "b",
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Color(0xFF9CA3AF)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          hintText: 'Rechercher un client',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(
+                            color: Color(0xFF9CA3AF),
+                            fontSize: 14,
                           ),
-                        ],
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.search, color: Color(0xFF9CA3AF)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              onChanged: (value) {
-                                setState(() {
-                                  _searchQuery = value;
-                                });
-                              },
-                              decoration: const InputDecoration(
-                                hintText: 'Rechercher un client',
-                                border: InputBorder.none,
-                                hintStyle: TextStyle(
-                                  color: Color(0xFF9CA3AF),
-                                  fontSize: 14,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Center(
+                child: Wrap(
+                  runSpacing: 8.0,
+                  spacing: 8.0,
+                  children: [
+                    _buildStatusFilter('Tous', Colors.blue),
+                    _buildStatusFilter('en_attente', Colors.orange),
+                    _buildStatusFilter('octroyee', Colors.green),
+                    // _buildStatusFilter('refusee', Colors.red),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Expanded(
+              child:
+              //  _loading
+              //     ? const Center(child: CircularProgressIndicator())
+              //     :
+                   filteredAndStatusClients.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "Aucun client n'a encore obtenu de récompense.",
+                            style: TextStyle(fontSize: 15, color: Color(0xFF6B7280)),
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: filteredAndStatusClients.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final client = filteredAndStatusClients[index];
+                            final rewardLabel = (client['reward'] ?? '').toString();
+                            final levelColor = rewardLabel.isNotEmpty
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFF6B7280);
+                            final status = (client['reward_status'] ?? '').toString();
+
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 20),
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.07),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                                border: Border.all(
+                                  color: rewardLabel.isNotEmpty
+                                      ? const Color(0xFF10B981).withOpacity(0.2)
+                                      : const Color(0xFFE5E7EB),
+                                  width: 1.2,
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Center(
-                      child: Wrap(
-                        runSpacing: 8.0,
-                        spacing: 8.0,
-                        children: [
-                          _buildStatusFilter('Tous', Colors.blue),
-                          _buildStatusFilter('en_attente', Colors.orange),
-                          _buildStatusFilter('octroyee', Colors.green),
-                          // _buildStatusFilter('refusee', Colors.red),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  Expanded(
-                    child: filteredAndStatusClients.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "Aucun client n'a encore obtenu de récompense.",
-                              style: TextStyle(fontSize: 15, color: Color(0xFF6B7280)),
-                            ),
-                          )
-                        : ListView.separated(
-                            itemCount: filteredAndStatusClients.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final client = filteredAndStatusClients[index];
-                              final rewardLabel = (client['reward'] ?? '').toString();
-                              final levelColor = rewardLabel.isNotEmpty
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFF6B7280);
-                              final status = (client['reward_status'] ?? '').toString();
-
-                              return Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 20),
-                                padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(18),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.07),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                  border: Border.all(
-                                    color: rewardLabel.isNotEmpty
-                                        ? const Color(0xFF10B981).withOpacity(0.2)
-                                        : const Color(0xFFE5E7EB),
-                                    width: 1.2,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 26,
-                                          backgroundColor: rewardLabel.isNotEmpty
-                                              ? const Color(0xFF10B981).withOpacity(0.15)
-                                              : const Color(0xFF6B7280).withOpacity(0.10),
-                                          child: Icon(
-                                            rewardLabel.isNotEmpty ? Icons.emoji_events : Icons.person,
-                                            color: rewardLabel.isNotEmpty
-                                                ? const Color(0xFF10B981)
-                                                : const Color(0xFF6B7280),
-                                            size: 28,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 18),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      "${client['first_name']} ${client['last_name']}",
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                        fontFamily: "b",
-                                                        fontWeight: FontWeight.bold,
-                                                        color: Color(0xFF1F2937),
-                                                      ),
-                                                      maxLines: 2,
-                                                      softWrap: true,
-                                                      overflow: TextOverflow.visible,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.star,
-                                                    size: 16,
-                                                    color: Color(0xFFF59E0B),
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    "${client['points']} points",
-                                                    style: const TextStyle(
-                                                      fontSize: 13,
-                                                      fontFamily: "b",
-                                                      color: Color(0xFFF59E0B),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              if (rewardLabel.isNotEmpty)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(
-                                                    top: 6.0,
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.card_giftcard,
-                                                        color: levelColor,
-                                                        size: 18,
-                                                      ),
-                                                      const SizedBox(width: 6),
-                                                      Flexible(
-                                                        child: Text(
-                                                          "Récompense : $rewardLabel",
-                                                          style: TextStyle(
-                                                            fontSize: 14,
-                                                            fontFamily: "b",
-                                                            color: levelColor,
-                                                            fontWeight: FontWeight.w600,
-                                                          ),
-                                                          overflow: TextOverflow.ellipsis,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (status != 'octroyee')
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 12.0),
-                                        child: SizedBox(
-                                          width: double.infinity,
-                                          child: ElevatedButton.icon(
-                                            icon: const Icon(
-                                              Icons.check_circle,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                            label: const Text(
-                                              "Confirmer l'encaissement",
-                                              style: TextStyle(
-                                                fontFamily: "b",
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF10B981),
-                                              foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(vertical: 12),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                            ),
-                                            onPressed: () => _updateRewardStatus(client, 'octroyee'),
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 12.0),
-                                        child: SizedBox(
-                                          width: double.infinity,
-                                          child: ElevatedButton.icon(
-                                            icon: const Icon(
-                                              Icons.check_circle,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                            label: const Text(
-                                              "Déjà encaissée",
-                                              style: TextStyle(
-                                                fontFamily: "b",
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.grey,
-                                              foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(vertical: 12),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                            ),
-                                            onPressed: null,
-                                          ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 26,
+                                        backgroundColor: rewardLabel.isNotEmpty
+                                            ? const Color(0xFF10B981).withOpacity(0.15)
+                                            : const Color(0xFF6B7280).withOpacity(0.10),
+                                        child: Icon(
+                                          rewardLabel.isNotEmpty ? Icons.emoji_events : Icons.person,
+                                          color: rewardLabel.isNotEmpty
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFF6B7280),
+                                          size: 28,
                                         ),
                                       ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
+                                      const SizedBox(width: 18),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    "${client['first_name']} ${client['last_name']}",
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontFamily: "b",
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Color(0xFF1F2937),
+                                                    ),
+                                                    maxLines: 2,
+                                                    softWrap: true,
+                                                    overflow: TextOverflow.visible,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.star,
+                                                  size: 16,
+                                                  color: Color(0xFFF59E0B),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  "${client['points']} points",
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontFamily: "b",
+                                                    color: Color(0xFFF59E0B),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            if (rewardLabel.isNotEmpty)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 6.0,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.card_giftcard,
+                                                      color: levelColor,
+                                                      size: 18,
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Flexible(
+                                                      child: Text(
+                                                        "Récompense : $rewardLabel",
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          fontFamily: "b",
+                                                          color: levelColor,
+                                                          fontWeight: FontWeight.w600,
+                                                        ),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (status != 'octroyee')
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 12.0),
+                                      child: SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          icon: const Icon(
+                                            Icons.check_circle,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          label: const Text(
+                                            "Confirmer l'encaissement",
+                                            style: TextStyle(
+                                              fontFamily: "b",
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF10B981),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          onPressed: () => _updateRewardStatus(client, 'octroyee'),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 12.0),
+                                      child: SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          icon: const Icon(
+                                            Icons.check_circle,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          label: const Text(
+                                            "Déjà encaissée",
+                                            style: TextStyle(
+                                              fontFamily: "b",
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.grey,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          onPressed: null,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }

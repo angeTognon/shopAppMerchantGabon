@@ -16,12 +16,44 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> with WidgetsBindingObserver {
   String _selectedPeriod = 'Tous';
   String _selectedStore = 'Toutes';
+  String _searchQuery = '';
 
   final List<String> _periods = ['Tous', 'Cette semaine', 'Ce mois', 'Cette année'];
 
   List<dynamic> _notifications = [];
   bool _loading = true;
   bool _firstLoad = true;
+
+  Future<void> _deleteNotification(dynamic notif) async {
+    final notifId = notif['id'];
+    if (notifId == null) return;
+    final response = await http.post(
+      Uri.parse('$baseUrl/merchant_notifications.php'),
+      body: {
+        'action': 'delete',
+        'id': notifId.toString(),
+      },
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['success'] == true) {
+        setState(() {
+          _notifications.removeWhere((n) => n['id'] == notifId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notification supprimée'), backgroundColor: Color(0xFF10B981)),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['error'] ?? 'Erreur lors de la suppression'), backgroundColor: Colors.red),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur réseau'), backgroundColor: Colors.red),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -81,6 +113,14 @@ class _HistoryScreenState extends State<HistoryScreen> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) {
+    // Filtrage dynamique par nom du client (dans le message)
+    final filteredNotifications = _searchQuery.trim().isEmpty
+        ? _notifications
+        : _notifications.where((notif) {
+            final message = (notif['message'] ?? '').toLowerCase();
+            return message.contains(_searchQuery.toLowerCase());
+          }).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
@@ -108,7 +148,48 @@ class _HistoryScreenState extends State<HistoryScreen> with WidgetsBindingObserv
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            // Zone de recherche
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.07),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Color(0xFF9CA3AF)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          hintText: 'Rechercher un client',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(
+                            color: Color(0xFF9CA3AF),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             // Period filter
             SizedBox(
               height: 40,
@@ -156,11 +237,23 @@ class _HistoryScreenState extends State<HistoryScreen> with WidgetsBindingObserv
               ),
             ),
             const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 23),
+              child: Text(
+                            "Glissez une notification vers la gauche pour la supprimer.",
+                            style: TextStyle(
+                              fontFamily: "r",
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color:  const Color(0xFF6B7280),
+                            ),
+                          ),
+            ),
             // Historique des notifications (points octroyés)
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
-                  : _notifications.isEmpty
+                  : filteredNotifications.isEmpty
                       ? const Center(
                           child: Text(
                             "Aucune notification trouvée.",
@@ -169,10 +262,10 @@ class _HistoryScreenState extends State<HistoryScreen> with WidgetsBindingObserv
                         )
                       : ListView.separated(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          itemCount: _notifications.length,
+                          itemCount: filteredNotifications.length,
                           separatorBuilder: (_, __) => const SizedBox(height: 12),
                           itemBuilder: (context, index) {
-                            final notif = _notifications[index];
+                            final notif = filteredNotifications[index];
                             final type = notif['type'] ?? 'info';
                             final iconData = type == 'success'
                                 ? Icons.check_circle
@@ -185,71 +278,102 @@ class _HistoryScreenState extends State<HistoryScreen> with WidgetsBindingObserv
                                     ? const Color(0xFF3B82F6)
                                     : const Color(0xFFF59E0B);
 
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.06),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                            return Dismissible(
+                              key: ValueKey(notif['id']),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                color: Colors.red,
+                                child: const Icon(Icons.delete, color: Colors.white, size: 28),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: iconColor.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.all(10),
-                                    child: Icon(iconData, color: iconColor, size: 26),
+                              confirmDismiss: (direction) async {
+                                return await showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: Colors.white,
+                                    title: const Text('Supprimer la notification',style :TextStyle(fontFamily: "b",fontSize: 16)),
+                                    content: const Text('Voulez-vous vraiment supprimer cette notification ?',style :TextStyle(fontFamily: "r")),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(false),
+                                        child: const Text('Annuler',style :TextStyle(fontFamily: "r")),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(true),
+                                        child: const Text('Supprimer', style: TextStyle(color: Colors.red,fontFamily: "r") ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                notif['title'] ?? '',
-                                                style: const TextStyle(
-                                                  fontFamily: "b",
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Color(0xFF1F2937),
+                                );
+                              },
+                              onDismissed: (_) => _deleteNotification(notif),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.06),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: iconColor.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: const EdgeInsets.all(10),
+                                      child: Icon(iconData, color: iconColor, size: 26),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  notif['title'] ?? '',
+                                                  style: const TextStyle(
+                                                    fontFamily: "b",
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF1F2937),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            Text(
-                                              _formatDate(notif['created_at'] ?? ''),
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Color(0xFF9CA3AF),
-                                                fontFamily: "r",
+                                              Text(
+                                                _formatDate(notif['created_at'] ?? ''),
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Color(0xFF9CA3AF),
+                                                  fontFamily: "r",
+                                                ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          notif['message'] ?? '',
-                                          style: const TextStyle(
-                                            fontFamily: "r",
-                                            fontSize: 14,
-                                            color: Color(0xFF374151),
+                                            ],
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            notif['message'] ?? '',
+                                            style: const TextStyle(
+                                              fontFamily: "r",
+                                              fontSize: 14,
+                                              color: Color(0xFF374151),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             );
                           },

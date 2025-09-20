@@ -9,6 +9,8 @@ class User {
   final String memberSince;
   final String storeName;
   final List<Map<String, dynamic>> rewards; // <-- Ajoute cette ligne
+  final String? status;
+  final String? customMessage;
 
   User({
     required this.id,
@@ -21,6 +23,8 @@ class User {
     required this.memberSince,
     required this.storeName,
     required this.rewards, // <-- Ajoute ici aussi
+    this.status,
+    this.customMessage,
   });
 
     factory User.fromJson(Map<String, dynamic> json) {
@@ -32,7 +36,7 @@ class User {
       phone: json['phone'],
       points: json['points'] is int ? json['points'] : int.tryParse(json['points'].toString()) ?? 0,
       tier: json['tier'] ?? '',
-      memberSince: json['memberSince'] ?? json['member_since'] ?? '',
+      memberSince: json['created_at'] ?? json['created_at'] ?? '',
       storeName: json['storeName'] ?? json['store_name'] ?? '',
             rewards: (json['rewards'] is List)
           ? (json['rewards'] as List)
@@ -40,6 +44,8 @@ class User {
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList()
           : <Map<String, dynamic>>[],
+      status: json['status'],
+      customMessage: json['customMessage'] ?? json['custom_message'],
     );
   }
 
@@ -55,6 +61,8 @@ class User {
       'memberSince': memberSince,
       'storeName': storeName,
       'rewards': rewards, // <-- Ajoute ici aussi
+      'status': status,
+      'customMessage': customMessage,
     };
   }
 
@@ -69,6 +77,8 @@ class User {
     String? memberSince,
     String? storeName,
     List<Map<String, dynamic>>? rewards, // <-- Ajoute ici aussi
+    String? status,
+    String? customMessage,
   }) {
     return User(
       id: id ?? this.id,
@@ -81,6 +91,8 @@ class User {
       memberSince: memberSince ?? this.memberSince,
       storeName: storeName ?? this.storeName,
       rewards: rewards ?? this.rewards, // <-- Ajoute ici aussi
+      status: status ?? this.status,
+      customMessage: customMessage ?? this.customMessage,
     );
   }
 }

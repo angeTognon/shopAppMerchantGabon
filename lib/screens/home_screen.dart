@@ -252,92 +252,183 @@ class _HomeScreenState extends State<HomeScreen> {
     return null;
   }
 
-  void _handleQRScanSuccess(String clientId) async {
-    print('QR callback reçu: $clientId');
-    final pointsEarned = pointsToSet;
-
-    try {
-      await addPointsToClient(clientId, pointsEarned);
-
-      // Récupère les infos du client
-      final clientInfo = await fetchClientInfo(clientId);
-
-      // Ajoute la notification commerçant côté serveur
-      await addMerchantNotification(
-        title: 'Points attribués !',
-        message: clientInfo != null
-            ? 'Le client ${clientInfo['first_name']} ${clientInfo['last_name']} a reçu $pointsEarned points'
-            : 'Le client $clientId a reçu $pointsEarned points',
-        type: 'success',
-      );
-      // Recharge la liste
-      await loadMerchantNotifications();
-
-      // ... (affichage du dialog comme avant)
-      showDialog(
-        context: context,
-        builder: (context) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.emoji_events, color: Color(0xFF10B981), size: 60),
-                const SizedBox(height: 16),
-                Text(
-                  'Points attribués !',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontFamily: "b",
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF10B981),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  clientInfo != null
-                      ? 'Le client ${clientInfo['first_name']} ${clientInfo['last_name']} a reçu $pointsEarned points 🎉'
-                      : 'Le client $clientId a reçu $pointsEarned points 🎉',
-                  style: const TextStyle(fontSize: 16, fontFamily: "r"),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Fermer',
+        void _handleQRScanSuccess(String clientId) async {
+      print('QR callback reçu: $clientId');
+      final pointsEarned = pointsToSet;
+    
+      try {
+        // Récupère les infos du client AVANT d'ajouter les points
+        final clientInfo = await fetchClientInfo(clientId);
+    
+        // Détermine le niveau max (le plus grand "value" dans rewards)
+        int maxLevelPoints = 0;
+        for (final reward in rewards) {
+          final value = int.tryParse(reward['value'] ?? '') ?? 0;
+          if (value > maxLevelPoints) maxLevelPoints = value;
+        }
+    
+        final currentPoints = clientInfo?['points'] ?? 0;
+    
+        if (currentPoints >= maxLevelPoints && maxLevelPoints > 0) {
+          // Niveau max déjà atteint, on remet à zéro et on NE RAJOUTE PAS de points
+          await resetClientPoints(clientId);
+    
+          await addMerchantNotification(
+            title: 'Niveau maximum atteint',
+            message: clientInfo != null
+                ? 'Le client ${clientInfo['first_name']} ${clientInfo['last_name']} recommence à zéro.'
+                : 'Le client $clientId recommence à zéro.',
+            type: 'info',
+          );
+    
+          // Affiche le dialog
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.emoji_events, color: Color(0xFF10B981), size: 60),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Niveau maximum atteint !',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontFamily: "r",
+                        fontSize: 20,
+                        fontFamily: "b",
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF10B981),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      clientInfo != null
+                          ? 'Le client ${clientInfo['first_name']} ${clientInfo['last_name']} recommence à zéro.'
+                          : 'Le client $clientId recommence à zéro.',
+                      style: const TextStyle(fontSize: 16, fontFamily: "r"),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Fermer',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontFamily: "r",
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-      );
+          );
+        } else {
+          // Ajoute les points normalement
+          await addPointsToClient(clientId, pointsEarned);
+    
+          await addMerchantNotification(
+            title: 'Points attribués !',
+            message: clientInfo != null
+                ? 'Le client ${clientInfo['first_name']} ${clientInfo['last_name']} a reçu $pointsEarned points'
+                : 'Le client $clientId a reçu $pointsEarned points',
+            type: 'success',
+          );
+    
+          // Affiche le dialog
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.emoji_events, color: Color(0xFF10B981), size: 60),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Points attribués !',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontFamily: "b",
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF10B981),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      clientInfo != null
+                          ? 'Le client ${clientInfo['first_name']} ${clientInfo['last_name']} a reçu $pointsEarned points 🎉'
+                          : 'Le client $clientId a reçu $pointsEarned points 🎉',
+                      style: const TextStyle(fontSize: 16, fontFamily: "r"),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Fermer',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontFamily: "r",
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+    
+        // Recharge la liste
+        await loadMerchantNotifications();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
+Future<void> resetClientPoints(String clientId) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/reset_points.php'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'client_id': clientId}),
+  );
+  if (response.statusCode != 200) {
+    throw Exception('Erreur lors de la remise à zéro des points');
   }
-
+}
   Future<void> addMerchantNotification({
     required String title,
     required String message,
